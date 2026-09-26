@@ -17,6 +17,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { getSubmissionsFromFirestore, deleteSubmissionFromFirestore } from '../lib/firebase.js';
+import { CsvUploader } from './CsvUploader.js';
 
 interface AdminViewProps {
   onSelectAddress?: (sub: any) => void;
@@ -426,15 +427,27 @@ export const AdminView: React.FC<AdminViewProps> = ({ onSelectAddress, currentUs
             )}
           </div>
 
-          {/* Export CSV button */}
-          <button
-            onClick={handleExportCSV}
-            disabled={filteredAndSortedList.length === 0}
-            className="px-3 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 disabled:opacity-50 transition-colors flex items-center space-x-1.5"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Export CSV ({filteredAndSortedList.length})</span>
-          </button>
+          {/* CSV Actions: Import & Export */}
+          <div className="flex items-center space-x-2">
+            <CsvUploader
+              apiBaseUrl={apiBaseUrl}
+              adminToken={adminToken}
+              onImportComplete={() => {
+                fetchSqliteSubmissions();
+                setSuccessMsg('Bulk CSV import completed successfully!');
+                setTimeout(() => setSuccessMsg(null), 4000);
+              }}
+            />
+
+            <button
+              onClick={handleExportCSV}
+              disabled={filteredAndSortedList.length === 0}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 disabled:opacity-50 transition-colors flex items-center space-x-1.5"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export CSV ({filteredAndSortedList.length})</span>
+            </button>
+          </div>
         </div>
       </div>
 

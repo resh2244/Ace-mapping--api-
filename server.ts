@@ -107,6 +107,109 @@ app.post('/api/submissions', async (req: Request, res: Response) => {
   }
 });
 
+// 3b. POST /api/submissions/bulk -> Bulk import and optional validation into SQLite
+app.post('/api/submissions/bulk', requireAdminToken, async (req: Request, res: Response) => {
+  try {
+    const { items, autoValidate } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      res.status(400).json({ error: 'items array is required and must not be empty' });
+      return;
+    }
+
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyAIzViRqCEzl-p7aeHP3IHz0wNNtJi-Thk';
+    const importedResults: StoredSubmission[] = [];
+    const errors: { index: number; address: string; error: string }[] = [];
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      try {
+        const addressText = item.address || item.formattedAddress;
+        if (!addressText) {
+          errors.push({ index: i, address: 'empty', error: 'Missing address' });
+          continue;
+        }
+
+        let lat = item.lat ? Number(item.lat) : 0;
+        let lng = item.lng ? Number(item.lng) : 0;
+        let formattedAddress = addressText;
+        let granularity = item.granularity || 'PREMISE';
+        let complete = item.complete !== undefined ? Boolean(item.complete) : true;
+        let hasUnconfirmed = item.hasUnconfirmedComponents ? Boolean(item.hasUnconfirmedComponents) : false;
+        let verdictSummary = item.verdictSummary || 'Bulk imported via Admin CSV';
+        const regionCode = (item.regionCode || 'US').toUpperCase();
+
+        // If autoValidate is true, call Google Address Validation API
+        if (autoValidate) {
+          try {
+            const valResp = await fetch(
+              `https://addressvalidation.googleapis.com/v1:validateAddress?key=${apiKey}`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  address: {
+                    regionCode,
+                    addressLines: [addressText]
+                  }
+                })
+              }
+            );
+            const valData: any = await valResp.json();
+            if (valData.result) {
+              const r = valData.result;
+              formattedAddress = r.address?.formattedAddress || addressText;
+              if (r.geocode?.location) {
+                lat = r.geocode.location.latitude;
+                lng = r.geocode.location.longitude;
+              }
+              granularity = r.verdict?.validationGranularity || granularity;
+              complete = r.verdict?.addressComplete !== undefined ? r.verdict.addressComplete : complete;
+              hasUnconfirmed = r.verdict?.hasUnconfirmedComponents || false;
+              verdictSummary = `Validated via Google API. Granularity: ${granularity}`;
+            }
+          } catch (valErr: any) {
+            console.warn('Auto-validate error for row ' + i, valErr);
+          }
+        }
+
+        const submissionId = item.id || `sub_bulk_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 6)}`;
+        const record: StoredSubmission = {
+          id: submissionId,
+          formattedAddress,
+          addressLines: JSON.stringify([addressText]),
+          regionCode,
+          lat,
+          lng,
+          granularity,
+          complete,
+          hasUnconfirmedComponents: hasUnconfirmed,
+          verdictSummary,
+          notes: item.notes || 'Bulk CSV Import',
+          userId: item.userId || 'admin',
+          userEmail: item.userEmail || 'admin@simonejovitamaps.internal',
+          createdAt: item.createdAt || new Date().toISOString()
+        };
+
+        await insertSubmission(record);
+        importedResults.push(record);
+      } catch (rowErr: any) {
+        errors.push({ index: i, address: item.address || 'unknown', error: rowErr.message });
+      }
+    }
+
+    res.json({
+      success: true,
+      importedCount: importedResults.length,
+      errorsCount: errors.length,
+      imported: importedResults,
+      errors
+    });
+  } catch (err: any) {
+    console.error('Bulk import error:', err);
+    res.status(500).json({ error: err.message || 'Failed to bulk import submissions' });
+  }
+});
+
 // 4. GET /api/submissions -> Requires x-admin-token
 app.get('/api/submissions', requireAdminToken, async (_req: Request, res: Response) => {
   try {
