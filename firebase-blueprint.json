@@ -1,0 +1,78 @@
+{
+  "entities": {
+    "AddressSubmission": {
+      "title": "Address Submission",
+      "description": "Validated address submission with coordinates and verdict metadata",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier"
+        },
+        "formattedAddress": {
+          "type": "string",
+          "description": "Standardized formatted address returned by Google Address Validation"
+        },
+        "addressLines": {
+          "type": "string",
+          "description": "Input address lines JSON"
+        },
+        "regionCode": {
+          "type": "string",
+          "description": "ISO two-letter country or region code"
+        },
+        "lat": {
+          "type": "number",
+          "description": "Latitude coordinate"
+        },
+        "lng": {
+          "type": "number",
+          "description": "Longitude coordinate"
+        },
+        "granularity": {
+          "type": "string",
+          "description": "Validation granularity e.g. SUB_PREMISE, PREMISE, ROUTE"
+        },
+        "complete": {
+          "type": "boolean",
+          "description": "Whether the address is fully complete and unambiguous"
+        },
+        "hasUnconfirmedComponents": {
+          "type": "boolean",
+          "description": "Whether any unconfirmed components were flagged"
+        },
+        "verdictSummary": {
+          "type": "string",
+          "description": "Human-readable verdict description"
+        },
+        "notes": {
+          "type": "string",
+          "description": "User custom notes or tags"
+        },
+        "meetUri": {
+          "type": "string",
+          "description": "Associated Google Meet space URI if created"
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID of user who submitted"
+        },
+        "userEmail": {
+          "type": "string",
+          "description": "Email of user who submitted"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp string"
+        }
+      },
+      "required": ["formattedAddress", "lat", "lng", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/submissions/{submissionId}": {
+      "schema": "AddressSubmission",
+      "description": "Collection of all validated address submissions"
+    }
+  }
+}

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Address Map App - Admin Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+  <div class="max-w-6xl mx-auto px-4 py-8 space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between pb-6 border-b border-slate-800">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-purple-600 flex items-center justify-center text-white">
+          <i class="fa-solid fa-shield-halved text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold">Admin Portal • Address Submissions</h1>
+          <p class="text-xs text-slate-400">Direct SQLite endpoint: <code>/api/submissions</code> with <code>x-admin-token</code></p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <a href="/" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 transition-colors">
+          <i class="fa-solid fa-map-location-dot mr-1.5 text-blue-400"></i> Main App (Map & Validator)
+        </a>
+      </div>
+    </div>
+
+    <!-- Auth Bar -->
+    <div class="bg-slate-800/80 rounded-xl p-4 border border-slate-700 flex flex-col sm:flex-row items-center gap-3">
+      <div class="relative flex-1 w-full">
+        <i class="fa-solid fa-key absolute left-3 top-3 text-slate-500 text-xs"></i>
+        <input 
+          id="tokenInput" 
+          type="password" 
+          placeholder="x-admin-token (default: adm-secret-superkey-8899)"
+          class="w-full pl-8 pr-3 py-2 text-xs rounded-lg bg-slate-900 border border-slate-700 text-white font-mono focus:outline-none focus:ring-2 focus:ring-purple-500"
+          value="adm-secret-superkey-8899"
+        />
+      </div>
+      <button 
+        id="loadBtn"
+        onclick="loadSubmissions()"
+        class="w-full sm:w-auto px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold flex items-center justify-center space-x-2 transition-colors">
+        <i class="fa-solid fa-rotate"></i>
+        <span>Fetch Submissions</span>
+      </button>
+    </div>
+
+    <!-- Status banner -->
+    <div id="statusBanner" class="hidden p-3 rounded-lg text-xs"></div>
+
+    <!-- Search & Filter bar -->
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-800/50 p-3 rounded-xl border border-slate-700/60">
+      <input 
+        id="filterInput" 
+        type="text" 
+        oninput="renderTable()" 
+        placeholder="Search address, region, user..." 
+        class="w-full sm:w-80 px-3 py-1.5 text-xs rounded-lg bg-slate-900 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+      />
+      <div id="countBadge" class="text-xs text-slate-400">0 submissions found</div>
+    </div>
+
+    <!-- Submissions Table -->
+    <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-sm">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-900/80 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-700">
+            <tr>
+              <th class="px-4 py-3">Address</th>
+              <th class="px-4 py-3">Region</th>
+              <th class="px-4 py-3">Coordinates</th>
+              <th class="px-4 py-3">Granularity</th>
+              <th class="px-4 py-3">Status</th>
+              <th class="px-4 py-3">User</th>
+              <th class="px-4 py-3">Created</th>
+              <th class="px-4 py-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody" class="divide-y divide-slate-700/60 text-slate-200">
+            <tr>
+              <td colspan="8" class="px-4 py-8 text-center text-slate-500">
+                Click "Fetch Submissions" above to load records.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let allSubmissions = [];
+
+    async function loadSubmissions() {
+      const token = document.getElementById('tokenInput').value.trim();
+      const banner = document.getElementById('statusBanner');
+      banner.className = 'hidden';
+
+      try {
+        const res = await fetch('/api/submissions', {
+          headers: { 'x-admin-token': token }
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Authentication error');
+        }
+        allSubmissions = data.submissions || [];
+        banner.className = 'p-3 rounded-lg text-xs bg-emerald-950/80 border border-emerald-800 text-emerald-300 block';
+        banner.textContent = `Successfully loaded ${allSubmissions.length} submissions from SQLite database.`;
+        renderTable();
+      } catch (err) {
+        banner.className = 'p-3 rounded-lg text-xs bg-rose-950/80 border border-rose-800 text-rose-300 block';
+        banner.textContent = 'Error: ' + err.message;
+      }
+    }
+
+    function renderTable() {
+      const filter = document.getElementById('filterInput').value.toLowerCase();
+      const filtered = allSubmissions.filter(s => {
+        return (
+          (s.formattedAddress && s.formattedAddress.toLowerCase().includes(filter)) ||
+          (s.regionCode && s.regionCode.toLowerCase().includes(filter)) ||
+          (s.userEmail && s.userEmail.toLowerCase().includes(filter)) ||
+          (s.notes && s.notes.toLowerCase().includes(filter))
+        );
+      });
+
+      document.getElementById('countBadge').textContent = `${filtered.length} submissions found`;
+      const tbody = document.getElementById('tableBody');
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">No submissions found.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(item => `
+        <tr class="hover:bg-slate-700/40 transition-colors">
+          <td class="px-4 py-3 font-medium text-white max-w-xs truncate">${item.formattedAddress}</td>
+          <td class="px-4 py-3 font-mono text-[11px]">${item.regionCode || 'N/A'}</td>
+          <td class="px-4 py-3 font-mono text-[11px] text-slate-400">${item.lat ? item.lat.toFixed(4) : ''}, ${item.lng ? item.lng.toFixed(4) : ''}</td>
+          <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-slate-900 text-[10px] text-slate-300">${item.granularity || 'SUB_PREMISE'}</span></td>
+          <td class="px-4 py-3">
+            <span class="px-2 py-0.5 rounded text-[10px] ${item.complete ? 'bg-emerald-900/60 text-emerald-300' : 'bg-amber-900/60 text-amber-300'}">
+              ${item.complete ? 'Complete' : 'Incomplete'}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-slate-400 text-[11px]">${item.userEmail || 'Guest'}</td>
+          <td class="px-4 py-3 text-slate-400 text-[11px]">${new Date(item.createdAt).toLocaleDateString()}</td>
+          <td class="px-4 py-3 text-right">
+            <button onclick="deleteSubmission('${item.id}')" class="text-rose-400 hover:text-rose-300 p-1">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function deleteSubmission(id) {
+      if (!confirm('Delete submission ' + id + '?')) return;
+      const token = document.getElementById('tokenInput').value.trim();
+      try {
+        const res = await fetch('/api/submissions/' + id, {
+          method: 'DELETE',
+          headers: { 'x-admin-token': token }
+        });
+        if (res.ok) {
+          allSubmissions = allSubmissions.filter(s => s.id !== id);
+          renderTable();
+        }
+      } catch (err) {
+        alert('Delete failed: ' + err.message);
+      }
+    }
+
+    // Auto load on open
+    window.addEventListener('DOMContentLoaded', loadSubmissions);
+  </script>
+</body>
+</html>

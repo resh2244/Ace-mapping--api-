@@ -1,0 +1,16 @@
+name = "simone-jovita-api"
+main = "src/worker.ts"
+compatibility_date = "2024-09-01"
+
+# D1 Database binding for persistent storage on Cloudflare
+[[d1_databases]]
+binding = "DB"
+database_name = "simone-jovita-db"
+database_id = "your-d1-database-id-here"
+
+[vars]
+ENVIRONMENT = "production"
+ADMIN_TOKEN = "adm-secret-superkey-8899"
+
+[site]
+bucket = "./dist"

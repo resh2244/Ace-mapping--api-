@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .bg-gold-gradient {
+    background: linear-gradient(135deg, #d4af37 0%, #f3e5ab 50%, #aa771c 100%);
+  }
+  .text-gold-gradient {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .border-gold {
+    border-color: #d4af37;
+  }
+  .shadow-gold {
+    box-shadow: 0 4px 20px -2px rgba(212, 175, 55, 0.25);
+  }
+  .bg-navy-900 {
+    background-color: #0b1329;
+  }
+  .bg-navy-800 {
+    background-color: #111d40;
+  }
+  .bg-navy-700 {
+    background-color: #1a2a5e;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.05);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(203, 161, 53, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(203, 161, 53, 0.6);
+}

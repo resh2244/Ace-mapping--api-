@@ -1,0 +1,6 @@
+{
+  "name": "Address Map App",
+  "description": "Validate submitted addresses with Google Address Validation API, view on Google Maps, store in SQLite & Firestore, with Google Meet calls & Gemini AI intelligence.",
+  "requestFramePermissions": ["geolocation", "microphone", "camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
